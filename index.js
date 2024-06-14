@@ -119,7 +119,7 @@ async function run() {
       );
       if (isUserBooked) {
         return res.send({
-          status: "Booking failed",
+          status: false,
           message: "You have already booked this event!",
         });
       }
@@ -151,7 +151,7 @@ async function run() {
       // 2.2 - if user has no events booked yet of this event-id then book it or if already booked then return a message
       if (eventsArray?.find((event) => event.eventID === id)) {
         return res.send({
-          status: "Booking failed",
+          status: false,
           message: "You have already booked this event!",
         });
       }
@@ -171,7 +171,7 @@ async function run() {
         await usersCollection4booKeVentsDB.updateOne(userQuery, userUpdate);
 
       res.send({
-        status: "Booking success",
+        status: true,
         message: "Event booked successfully!",
       });
     });
