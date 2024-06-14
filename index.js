@@ -122,14 +122,20 @@ async function run() {
       const user = await usersCollection4booKeVentsDB.findOne(userQuery);
       const eventsArray = user?.events;
 
-      // if user has no events booked yet of this event id if already booked then return a message
+      // 2.2 - if user has no events booked yet of this event-id then book it or if already booked then return a message
       if (eventsArray?.find((event) => event._id.toString() === id)) {
         return res.send({
           status: "Booking failed",
           message: "You have already booked this event!",
         });
       }
-      eventsArray.push(event);
+      // eventsArray.push(event);
+      eventsArray.push({
+        eventID: id,
+        eventTitle: event?.title,
+        isPaid: false,
+        trnxID: "",
+      });
       const userUpdate = {
         $set: {
           events: eventsArray,
@@ -144,9 +150,8 @@ async function run() {
       });
     });
 
-    /*
-    // get my events based on email
-    app.get("/api/v1/events/myEvents", verifyToken, async (req, res) => {
+    /*  // get my events based on email
+    app.get("/api/v1/events/my-events", verifyToken, async (req, res) => {
       const query = { email: req.user };
       const cursor4AllEventsData = eventsCollection4BooKeVents.find({});
       const resutl4allEventsArray = await cursor4AllEventsData.toArray();
@@ -158,7 +163,7 @@ async function run() {
         });
       });
       res.send(myEvents);
-    });
+    }); */
 
     // patch payment for an event
 
@@ -167,15 +172,17 @@ async function run() {
     );
     app.patch("/api/v1/events/pay-event/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
+      const paymentInfo = req.body;
       // 1-update isPaid to true and add trnxID to the attendee of an event
       const query = { _id: new ObjectId(id) };
       const event = await eventsCollection4BooKeVents.findOne(query);
+
       const attendeesArray = event.attendees;
       const attendeeIndex = attendeesArray.findIndex(
         (attendee) => attendee.email === req.user
       );
       attendeesArray[attendeeIndex].isPaid = true;
-      attendeesArray[attendeeIndex].trnxID = req.body.trnxID;
+      attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
 
       const update = {
         $set: {
@@ -190,10 +197,10 @@ async function run() {
       const user = await usersCollection4booKeVentsDB.findOne(userQuery);
       const eventsArray = user.events;
       const eventIndex = eventsArray.findIndex(
-        (event) => event._id.toString() === id
+        (event) => event?.eventID === id
       );
       eventsArray[eventIndex].isPaid = true;
-      eventsArray[eventIndex].trnxID = req.body.trnxID;
+      eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
       const userUpdate = {
         $set: {
           events: eventsArray,
@@ -206,7 +213,7 @@ async function run() {
       const payment = {
         email: req.user,
         eventID: id,
-        trnxID: req.body.trnxID,
+        trnxID: paymentInfo.trnxID,
       };
       const result4Payment = await paymentCollectionBooKeVents.insertOne(
         payment
@@ -217,7 +224,7 @@ async function run() {
         message: "Payment done successfully!",
         result4Payment,
       });
-    }); */
+    });
 
     console.log("Successfully connected to MongoDB!");
   } finally {
