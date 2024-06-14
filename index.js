@@ -18,7 +18,7 @@ app.use(express.json());
 function generateToken(userInfo) {
   const token = jwt.sign(
     {
-      email: userInfo.email,
+      email: userInfo?.email,
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "7d" }
@@ -34,7 +34,7 @@ function verifyToken(req, res, next) {
   if (!verify?.email) {
     return res.send("Your token is not valid!");
   }
-  req.user = verify.email;
+  req.user = verify?.email;
 
   next();
 }
@@ -115,7 +115,7 @@ async function run() {
 
       // 1.2 - if user has already booked this event then return a message
       const isUserBooked = attendeesArray.find(
-        (attendee) => attendee.email === req.user
+        (attendee) => attendee?.email === req.user
       );
       if (isUserBooked) {
         return res.send({
@@ -186,7 +186,7 @@ async function run() {
       resutl4allEventsArray.forEach((event) => {
         const attendeesArray = event.attendees;
         const isUserBooked = attendeesArray.find(
-          (attendee) => attendee.email === email
+          (attendee) => attendee?.email === email
         );
         if (isUserBooked) {
           myEvents.push(event);
@@ -276,7 +276,7 @@ async function run() {
 
         // check each payment if eventID and email matches then return a message
         const isAlreadyPaid = allPaymentsArray.find(
-          (payment) => payment.eventID === id && payment.email === userEmail
+          (payment) => payment?.eventID === id && payment?.email === userEmail
         );
 
         if (isAlreadyPaid) {
@@ -292,7 +292,7 @@ async function run() {
 
         const attendeesArray = event.attendees;
         const attendeeIndex = attendeesArray.findIndex(
-          (attendee) => attendee.email === userEmail
+          (attendee) => attendee?.email === userEmail
         );
 
         attendeesArray[attendeeIndex].isPaid = true;
