@@ -106,7 +106,7 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const event = await eventsCollection4BooKeVents.findOne(query);
       const attendeesArray = event.attendees;
-      
+
       // 1.2 - if user has already booked this event then return a message
       const isUserBooked = attendeesArray.find(
         (attendee) => attendee.email === req.user
@@ -119,6 +119,9 @@ async function run() {
       }
 
       const newAttendee = { email: req.user, isPaid: false, trnxID: "" };
+      if (event?.price === 0) {
+        newAttendee.isPaid = true;
+      }
       attendeesArray.push(newAttendee);
 
       const update = {
