@@ -106,6 +106,18 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const event = await eventsCollection4BooKeVents.findOne(query);
       const attendeesArray = event.attendees;
+      
+      // 1.2 - if user has already booked this event then return a message
+      const isUserBooked = attendeesArray.find(
+        (attendee) => attendee.email === req.user
+      );
+      if (isUserBooked) {
+        return res.send({
+          status: "Booking failed",
+          message: "You have already booked this event!",
+        });
+      }
+
       const newAttendee = { email: req.user, isPaid: false, trnxID: "" };
       attendeesArray.push(newAttendee);
 
@@ -123,7 +135,7 @@ async function run() {
       const eventsArray = user?.events;
 
       // 2.2 - if user has no events booked yet of this event-id then book it or if already booked then return a message
-      if (eventsArray?.find((event) => event._id.toString() === id)) {
+      if (eventsArray?.find((event) => event.eventID === id)) {
         return res.send({
           status: "Booking failed",
           message: "You have already booked this event!",
