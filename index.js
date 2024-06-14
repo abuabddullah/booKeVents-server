@@ -61,7 +61,7 @@ async function run() {
     // JWT - final protected POST req for creating a user
     app.post("/api/v1/users", async (req, res) => {
       const user = req.body;
-      console.log(user);
+      user.events = []; // to avoid undefined error
       const token = generateToken(user);
       const query = { email: user?.email };
       const isExistingUser = await usersCollection4booKeVentsDB.findOne(query);
@@ -91,28 +91,12 @@ async function run() {
       const results = await cursor4EventsData.toArray();
       res.send(results);
     });
-/* 
     // GET event by id
     app.get("/api/v1/events/:id", async (req, res) => {
       const { id } = req.params;
       const query = { _id: new ObjectId(id) };
       const event = await eventsCollection4BooKeVents.findOne(query);
       res.send(event);
-    });
-
-    // get my events based on email
-    app.get("/api/v1/events/myEvents", verifyToken, async (req, res) => {
-      const query = { email: req.user };
-      const cursor4AllEventsData = eventsCollection4BooKeVents.find({});
-      const resutl4allEventsArray = await cursor4AllEventsData.toArray();
-      let myEvents = [];
-      resutl4allEventsArray.forEach((event) => {
-        let attendeesArray = event.attendees;
-        myEvents = attendeesArray.filter((attendee) => {
-          return attendee.email === req.user;
-        });
-      });
-      res.send(myEvents);
     });
 
     // post booking for an event
@@ -136,7 +120,15 @@ async function run() {
       // 2-update the events array in users collection
       const userQuery = { email: req.user };
       const user = await usersCollection4booKeVentsDB.findOne(userQuery);
-      const eventsArray = user.events;
+      const eventsArray = user?.events;
+
+      // if user has no events booked yet of this event id if already booked then return a message
+      if (eventsArray?.find((event) => event._id.toString() === id)) {
+        return res.send({
+          status: "Booking failed",
+          message: "You have already booked this event!",
+        });
+      }
       eventsArray.push(event);
       const userUpdate = {
         $set: {
@@ -150,6 +142,22 @@ async function run() {
         status: "Booking success",
         message: "Event booked successfully!",
       });
+    });
+
+    /*
+    // get my events based on email
+    app.get("/api/v1/events/myEvents", verifyToken, async (req, res) => {
+      const query = { email: req.user };
+      const cursor4AllEventsData = eventsCollection4BooKeVents.find({});
+      const resutl4allEventsArray = await cursor4AllEventsData.toArray();
+      let myEvents = [];
+      resutl4allEventsArray.forEach((event) => {
+        let attendeesArray = event.attendees;
+        myEvents = attendeesArray.filter((attendee) => {
+          return attendee.email === req.user;
+        });
+      });
+      res.send(myEvents);
     });
 
     // patch payment for an event
