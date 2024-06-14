@@ -5,6 +5,10 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT;
+const stripe = require("stripe")(
+  "sk_test_51PRWX8Ca24ECLKfEK78mGFBgEBKjWTnbdRhAi7hVnhJZmPgEkuP97H8aV9bObgE3JHtrGJZYE4Ne9MeV3nlMtjs300a3QWgBa7"
+);
+// const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Middleware
 app.use(cors());
@@ -61,7 +65,7 @@ async function run() {
     // JWT - final protected POST req for creating a user
     app.post("/api/v1/users", async (req, res) => {
       const user = req.body;
-      console.log("currentUser from backend",user);
+      console.log("currentUser from backend", user);
       user.events = []; // to avoid undefined error
       const token = generateToken(user);
       const query = { email: user?.email };
@@ -197,7 +201,107 @@ async function run() {
     const paymentCollectionBooKeVents = booKeVentsDB.collection(
       "paymentCollectionBooKeVents"
     );
-    app.patch("/api/v1/events/pay-event/:id", verifyToken, async (req, res) => {
+    // create payment from strip default
+    app.post("/api/v1/events/pay-event/:id", verifyToken, async (req, res) => {
+      const { id } = req.params;
+      const userEmail = req.user;
+      // 1-update isPaid to true and add trnxID to the attendee of an event
+      const query = { _id: new ObjectId(id) };
+      const event = await eventsCollection4BooKeVents.findOne(query);
+      const eventPrice = event.price * 100; // 100 usd cent
+
+      try {
+        // step4stripe-1 create product
+        const product = await stripe.products.create({
+          name: event.title,
+          description: event.description,
+          active: true, // Optional: Whether the product is currently available (defaults to true)
+          metadata: {
+            // Optional: Custom key-value pairs for additional information
+            category: "event",
+            location: "New York",
+          },
+          images: [event.image], // Optional: Image URLs
+        });
+
+        // step4stripe-2 create price
+        const price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: eventPrice, // 100 usd cent
+          currency: "usd",
+        });
+
+        // step4stripe-3 create checkout session
+        const session = await stripe.checkout.sessions.create({
+          line_items: [
+            {
+              price: price.id,
+              quantity: 1,
+            },
+          ],
+          mode: "payment",
+          success_url: `http://localhost:5173/success/${id}/${userEmail}`,
+          cancel_url: "http://localhost:5173/cancel",
+          customer_email: userEmail,
+        });
+
+        res.json({ url: session.url });
+      } catch (error) {
+        console.error("Error creating payment session:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+      /* const attendeesArray = event.attendees;
+      const attendeeIndex = attendeesArray.findIndex(
+        (attendee) => attendee.email === req.user
+      );
+      attendeesArray[attendeeIndex].isPaid = true;
+      attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
+
+      const update = {
+        $set: {
+          attendees: attendeesArray,
+        },
+      };
+      const result4UpdateEventsColl =
+        await eventsCollection4BooKeVents.updateOne(query, update);
+
+      // 2-update the events array in users collection
+      const userQuery = { email: req.user };
+      const user = await usersCollection4booKeVentsDB.findOne(userQuery);
+      const eventsArray = user.events;
+      const eventIndex = eventsArray.findIndex(
+        (event) => event?.eventID === id
+      );
+      eventsArray[eventIndex].isPaid = true;
+      eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
+      const userUpdate = {
+        $set: {
+          events: eventsArray,
+        },
+      };
+      const result4UpdateUsersColl =
+        await usersCollection4booKeVentsDB.updateOne(userQuery, userUpdate);
+
+      //3 - post payment to payment collection
+      const payment = {
+        email: req.user,
+        eventID: id,
+        trnxID: paymentInfo.trnxID,
+      };
+      const result4Payment = await paymentCollectionBooKeVents.insertOne(
+        payment
+      );
+
+      res.send({
+        status: "Payment success",
+        message: "Payment done successfully!",
+        result4Payment,
+      }); */
+    });
+
+    // patch payment for an event in db
+
+    app.patch("/api/v1/events/payment-succcess/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const paymentInfo = req.body;
       // 1-update isPaid to true and add trnxID to the attendee of an event
