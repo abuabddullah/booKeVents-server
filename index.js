@@ -281,7 +281,7 @@ async function run() {
 
         if (isAlreadyPaid) {
           return res.send({
-            status: "Payment failed",
+            status: false,
             message: "You have already paid for this event!",
           });
         }
@@ -334,7 +334,7 @@ async function run() {
         );
 
         res.send({
-          status: "Payment success",
+          status: true,
           message: "Payment done successfully!",
           result4Payment,
         });
