@@ -201,6 +201,14 @@ async function run() {
     const paymentCollectionBooKeVents = booKeVentsDB.collection(
       "paymentCollectionBooKeVents"
     );
+
+    // get all payments
+    app.get("/api/v1/payments",verifyToken, async (req, res) => {
+      const cursor4allPayments = paymentCollectionBooKeVents.find({});
+      const allPaymentsArray = await cursor4allPayments.toArray();
+      res.send(allPaymentsArray);
+    });
+
     // create payment from strip default
     app.post("/api/v1/events/pay-event/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
