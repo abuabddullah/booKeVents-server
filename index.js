@@ -61,6 +61,7 @@ async function run() {
     // JWT - final protected POST req for creating a user
     app.post("/api/v1/users", async (req, res) => {
       const user = req.body;
+      console.log("currentUser from backend",user);
       user.events = []; // to avoid undefined error
       const token = generateToken(user);
       const query = { email: user?.email };
