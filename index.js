@@ -248,8 +248,8 @@ async function run() {
             },
           ],
           mode: "payment",
-          success_url: `http://localhost:5173/success/${id}/${userEmail}`,
-          cancel_url: "http://localhost:5173/cancel",
+          success_url: `https://boo-ke-vents.netlify.app/success/${id}/${userEmail}`,
+          cancel_url: "https://boo-ke-vents.netlify.app/cancel",
           customer_email: userEmail,
         });
 
