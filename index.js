@@ -250,112 +250,88 @@ async function run() {
         console.error("Error creating payment session:", error);
         res.status(500).json({ error: "Internal Server Error" });
       }
-      /* const attendeesArray = event.attendees;
-      const attendeeIndex = attendeesArray.findIndex(
-        (attendee) => attendee.email === req.user
-      );
-      attendeesArray[attendeeIndex].isPaid = true;
-      attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
-
-      const update = {
-        $set: {
-          attendees: attendeesArray,
-        },
-      };
-      const result4UpdateEventsColl =
-        await eventsCollection4BooKeVents.updateOne(query, update);
-
-      // 2-update the events array in users collection
-      const userQuery = { email: req.user };
-      const user = await usersCollection4booKeVentsDB.findOne(userQuery);
-      const eventsArray = user.events;
-      const eventIndex = eventsArray.findIndex(
-        (event) => event?.eventID === id
-      );
-      eventsArray[eventIndex].isPaid = true;
-      eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
-      const userUpdate = {
-        $set: {
-          events: eventsArray,
-        },
-      };
-      const result4UpdateUsersColl =
-        await usersCollection4booKeVentsDB.updateOne(userQuery, userUpdate);
-
-      //3 - post payment to payment collection
-      const payment = {
-        email: req.user,
-        eventID: id,
-        trnxID: paymentInfo.trnxID,
-      };
-      const result4Payment = await paymentCollectionBooKeVents.insertOne(
-        payment
-      );
-
-      res.send({
-        status: "Payment success",
-        message: "Payment done successfully!",
-        result4Payment,
-      }); */
     });
 
     // patch payment for an event in db
 
-    app.patch("/api/v1/events/payment-succcess/:id", verifyToken, async (req, res) => {
-      const { id } = req.params;
-      const paymentInfo = req.body;
-      // 1-update isPaid to true and add trnxID to the attendee of an event
-      const query = { _id: new ObjectId(id) };
-      const event = await eventsCollection4BooKeVents.findOne(query);
+    app.patch(
+      "/api/v1/events/payment-succcess/:id",
+      verifyToken,
+      async (req, res) => {
+        const { id } = req.params;
+        const userEmail = req.user;
+        // const paymentInfo = req.body;
 
-      const attendeesArray = event.attendees;
-      const attendeeIndex = attendeesArray.findIndex(
-        (attendee) => attendee.email === req.user
-      );
-      attendeesArray[attendeeIndex].isPaid = true;
-      attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
+        // check is already paid or not
+        const cursor4allPayments = paymentCollectionBooKeVents.find({});
+        const allPaymentsArray = await cursor4allPayments.toArray();
 
-      const update = {
-        $set: {
-          attendees: attendeesArray,
-        },
-      };
-      const result4UpdateEventsColl =
-        await eventsCollection4BooKeVents.updateOne(query, update);
+        // check each payment if eventID and email matches then return a message
+        const isAlreadyPaid = allPaymentsArray.find(
+          (payment) => payment.eventID === id && payment.email === userEmail
+        );
 
-      // 2-update the events array in users collection
-      const userQuery = { email: req.user };
-      const user = await usersCollection4booKeVentsDB.findOne(userQuery);
-      const eventsArray = user.events;
-      const eventIndex = eventsArray.findIndex(
-        (event) => event?.eventID === id
-      );
-      eventsArray[eventIndex].isPaid = true;
-      eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
-      const userUpdate = {
-        $set: {
-          events: eventsArray,
-        },
-      };
-      const result4UpdateUsersColl =
-        await usersCollection4booKeVentsDB.updateOne(userQuery, userUpdate);
+        if (isAlreadyPaid) {
+          return res.send({
+            status: "Payment failed",
+            message: "You have already paid for this event!",
+          });
+        }
 
-      //3 - post payment to payment collection
-      const payment = {
-        email: req.user,
-        eventID: id,
-        trnxID: paymentInfo.trnxID,
-      };
-      const result4Payment = await paymentCollectionBooKeVents.insertOne(
-        payment
-      );
+        // 1-update isPaid to true and add trnxID to the attendee of an event
+        const query = { _id: new ObjectId(id) };
+        const event = await eventsCollection4BooKeVents.findOne(query);
 
-      res.send({
-        status: "Payment success",
-        message: "Payment done successfully!",
-        result4Payment,
-      });
-    });
+        const attendeesArray = event.attendees;
+        const attendeeIndex = attendeesArray.findIndex(
+          (attendee) => attendee.email === userEmail
+        );
+
+        attendeesArray[attendeeIndex].isPaid = true;
+        // attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
+
+        const update = {
+          $set: {
+            attendees: attendeesArray,
+          },
+        };
+        const result4UpdateEventsColl =
+          await eventsCollection4BooKeVents.updateOne(query, update);
+
+        // 2-update the events array in users collection
+        const userQuery = { email: userEmail };
+        const user = await usersCollection4booKeVentsDB.findOne(userQuery);
+        const eventsArray = user.events;
+        const eventIndex = eventsArray.findIndex(
+          (event) => event?.eventID === id
+        );
+        eventsArray[eventIndex].isPaid = true;
+        // eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
+        const userUpdate = {
+          $set: {
+            events: eventsArray,
+          },
+        };
+        const result4UpdateUsersColl =
+          await usersCollection4booKeVentsDB.updateOne(userQuery, userUpdate);
+
+        //3 - post payment to payment collection
+        const payment = {
+          email: userEmail,
+          eventID: id,
+          // trnxID: paymentInfo.trnxID,
+        };
+        const result4Payment = await paymentCollectionBooKeVents.insertOne(
+          payment
+        );
+
+        res.send({
+          status: "Payment success",
+          message: "Payment done successfully!",
+          result4Payment,
+        });
+      }
+    );
 
     console.log("Successfully connected to MongoDB!");
   } finally {

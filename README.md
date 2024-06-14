@@ -1,5 +1,9 @@
 # README.md
 
+# development scopes
+
+- payment এর সময় trxID দিয়ে হবে
+
 ## img link for events
 
 https://i.ibb.co/nDcn0bY/2595559-369033-PBDN85-563.jpg
