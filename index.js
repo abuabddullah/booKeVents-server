@@ -101,8 +101,9 @@ async function run() {
 
     // post booking for an event
     app.post("/api/v1/events/book-event/:id", verifyToken, async (req, res) => {
-      // 1-add user to attendees array
       const { id } = req.params;
+      const userName = req.body.name;
+      // 1-add user to attendees array
       const query = { _id: new ObjectId(id) };
       const event = await eventsCollection4BooKeVents.findOne(query);
       const attendeesArray = event.attendees;
@@ -118,7 +119,12 @@ async function run() {
         });
       }
 
-      const newAttendee = { email: req.user, isPaid: false, trnxID: "" };
+      const newAttendee = {
+        email: req.user,
+        name: userName,
+        isPaid: false,
+        trnxID: "",
+      };
       if (event?.price === 0) {
         newAttendee.isPaid = true;
       }
