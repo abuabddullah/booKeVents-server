@@ -149,21 +149,26 @@ async function run() {
         message: "Event booked successfully!",
       });
     });
-
-    /*  // get my events based on email
-    app.get("/api/v1/events/my-events", verifyToken, async (req, res) => {
-      const query = { email: req.user };
+    // get my events based on email
+    app.get("/api/v1/my-events", verifyToken, async (req, res) => {
+      const email = req.user;
       const cursor4AllEventsData = eventsCollection4BooKeVents.find({});
       const resutl4allEventsArray = await cursor4AllEventsData.toArray();
-      let myEvents = [];
+
+      // get all events booked by the user based on email
+      const myEvents = [];
       resutl4allEventsArray.forEach((event) => {
-        let attendeesArray = event.attendees;
-        myEvents = attendeesArray.filter((attendee) => {
-          return attendee.email === req.user;
-        });
+        const attendeesArray = event.attendees;
+        const isUserBooked = attendeesArray.find(
+          (attendee) => attendee.email === email
+        );
+        if (isUserBooked) {
+          myEvents.push(event);
+        }
       });
+
       res.send(myEvents);
-    }); */
+    });
 
     // patch payment for an event
 
