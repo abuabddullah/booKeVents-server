@@ -179,17 +179,22 @@ async function run() {
     app.get("/api/v1/my-events", verifyToken, async (req, res) => {
       const email = req.user;
       const cursor4AllEventsData = eventsCollection4BooKeVents.find({});
-      const resutl4allEventsArray = await cursor4AllEventsData.toArray();
+      const result4allEventsArray = await cursor4AllEventsData.toArray();
 
       // get all events booked by the user based on email
       const myEvents = [];
-      resutl4allEventsArray.forEach((event) => {
+      result4allEventsArray.forEach((event) => {
         const attendeesArray = event.attendees;
         const isUserBooked = attendeesArray.find(
           (attendee) => attendee?.email === email
         );
         if (isUserBooked) {
-          myEvents.push(event);
+          // Clone the event and filter out other attendees
+          const eventCopy = { ...event };
+          eventCopy.attendees = attendeesArray.filter(
+            (attendee) => attendee?.email === email
+          );
+          myEvents.push(eventCopy);
         }
       });
 
@@ -203,7 +208,7 @@ async function run() {
     );
 
     // get all payments
-    app.get("/api/v1/payments",verifyToken, async (req, res) => {
+    app.get("/api/v1/payments", verifyToken, async (req, res) => {
       const cursor4allPayments = paymentCollectionBooKeVents.find({});
       const allPaymentsArray = await cursor4allPayments.toArray();
       res.send(allPaymentsArray);
