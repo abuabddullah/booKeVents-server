@@ -120,7 +120,7 @@ async function run() {
       if (isUserBooked) {
         return res.send({
           status: false,
-          message: "You have already booked this event! just Pay now..",
+          message: "You have already booked this event!",
         });
       }
 
