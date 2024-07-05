@@ -120,7 +120,7 @@ async function run() {
       if (isUserBooked) {
         return res.send({
           status: false,
-          message: "You have already booked this event!",
+          message: "You have already booked this event! just Pay now..",
         });
       }
 
@@ -244,6 +244,18 @@ async function run() {
           currency: "usd",
         });
 
+        // step for transId
+        function generateTransactionId(eventId, userId) {
+          // Get the current timestamp
+          const timestamp = Date.now().toString();
+
+          // Combine event ID, user ID, and timestamp to form a unique transaction ID
+          const transactionId = `${eventId}-${userId}-${timestamp}`;
+
+          return transactionId;
+        }
+
+        const transactionId = generateTransactionId(event._id, id);
         // step4stripe-3 create checkout session
         const session = await stripe.checkout.sessions.create({
           line_items: [
@@ -253,8 +265,8 @@ async function run() {
             },
           ],
           mode: "payment",
-          success_url: `https://boo-ke-vents.netlify.app/success/${id}/${userEmail}`,
-          cancel_url: "https://boo-ke-vents.netlify.app/cancel",
+          success_url: `${process.env.FRONTEND_URL}/payment/success/${transactionId}/${id}`,
+          cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
           customer_email: userEmail,
         });
 
@@ -272,8 +284,8 @@ async function run() {
       verifyToken,
       async (req, res) => {
         const { id } = req.params;
+        const { transactionId } = req.body;
         const userEmail = req.user;
-        // const paymentInfo = req.body;
 
         // check is already paid or not
         const cursor4allPayments = paymentCollectionBooKeVents.find({});
@@ -301,7 +313,7 @@ async function run() {
         );
 
         attendeesArray[attendeeIndex].isPaid = true;
-        // attendeesArray[attendeeIndex].trnxID = paymentInfo.trnxID;
+        attendeesArray[attendeeIndex].trnxID = transactionId;
 
         const update = {
           $set: {
@@ -319,7 +331,7 @@ async function run() {
           (event) => event?.eventID === id
         );
         eventsArray[eventIndex].isPaid = true;
-        // eventsArray[eventIndex].trnxID = paymentInfo.trnxID;
+        eventsArray[eventIndex].trnxID = transactionId;
         const userUpdate = {
           $set: {
             events: eventsArray,
@@ -332,7 +344,7 @@ async function run() {
         const payment = {
           email: userEmail,
           eventID: id,
-          // trnxID: paymentInfo.trnxID,
+          trnxID: transactionId,
         };
         const result4Payment = await paymentCollectionBooKeVents.insertOne(
           payment
